@@ -5,7 +5,7 @@ import java.util.Set;
 
 // generate a round int between 1000 and 2000
 
-public class RandomDouble
+public class RandomInteger
 {
     private static final Set<Integer> values = new HashSet<>();
 

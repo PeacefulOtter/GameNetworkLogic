@@ -15,6 +15,7 @@ public class ClientGame extends Game
     @Override
     public void init()
     {
+        System.out.println("[Game] Sending Login Packet");
         client.login();
         super.init();
     }

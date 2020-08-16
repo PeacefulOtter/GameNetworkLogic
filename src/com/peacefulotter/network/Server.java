@@ -1,5 +1,6 @@
 package com.peacefulotter.network;
 
+import com.peacefulotter.Utils.RandomInteger;
 import com.peacefulotter.game.Game;
 
 import java.io.*;
@@ -8,32 +9,40 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Server implements Connection
+public final class Server implements Connection
 {
-    private final Map<Double, ConnectionHandler> connections;
-    private boolean isRunning;
+    private final Map<Integer, ConnectionHandler> connections;
 
-    public Server( int port )
+    private Server( int port )
     {
         this.connections = new HashMap<>();
 
         try ( ServerSocket server = new ServerSocket( port ) )
         {
             Game game = new Game( this );
-            isRunning = true;
+            game.init(); // init update simulate
 
-            while ( isRunning )
+            while ( true )
             {
                 Socket socket = server.accept();
-                ConnectionHandler handler = new ConnectionHandler( socket, game, this );
-                connections.put( generateConnectionId(), handler );
+                System.out.println("[Server] Received socket : " + socket);
+                ConnectionHandler handler = new ConnectionHandler( socket, game, this, true );
+                connections.put( RandomInteger.generate(), handler );
                 new Thread( handler ).start();
             }
         }
+        //catch ( E )
         catch ( IOException e )
         {
             e.printStackTrace();
         }
+    }
+
+    public static void main( String[] args )
+    {
+        int port = Integer.parseInt( args[ 0 ] );
+        System.out.println( "[Server] Listening on port : " + port);
+        new Server( port );
     }
 
     /**
@@ -43,24 +52,22 @@ public class Server implements Connection
     @Override
     public void sendData( byte[] data )
     {
-        for (  ConnectionHandler handler : connections.values() )
+        for (  Map.Entry<Integer, ConnectionHandler> entry : connections.entrySet() )
         {
-            try { handler.sendData( data ); }
-            catch( IOException e ) { e.printStackTrace(); } // remove handler from the list
+            boolean done = entry.getValue().sendData( data );
+            if ( !done ) removeConnection( entry.getKey() );
         }
     }
 
-    private void removeConnection( int connectionId )
+    @Override
+    public void sendDataTo( byte[] data, int connectionId )
     {
-
+        boolean done = connections.get( connectionId ).sendData( data );
+        if ( !done ) removeConnection( connectionId );
     }
 
-    // generate double between 1000 and 2000
-    private double generateConnectionId()
+    private void removeConnection( double connectionId )
     {
-        double res;
-        do { res = ( Math.random() + 1 ) * 1000; }
-        while ( connections.containsKey(  res  ) );
-        return res;
+        connections.remove( connectionId );
     }
 }
