@@ -3,7 +3,7 @@ I suggest to use the Intellij Idea plugin called Multirun. You will be able to r
 see: https://plugins.jetbrains.com/plugin/7248-multirun
 
 ### Server program arguments
-<port>
+`<port>`
 
 ### Client program arguments
-<address> <port> (<username>)
+`<address> <port> (<username>)`
