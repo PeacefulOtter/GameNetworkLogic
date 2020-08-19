@@ -44,7 +44,5 @@ public class Logger
         {
             log( x );
         }
-
-
     }
 }

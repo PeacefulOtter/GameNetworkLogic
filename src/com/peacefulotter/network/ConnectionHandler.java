@@ -2,22 +2,20 @@ package com.peacefulotter.network;
 
 import com.peacefulotter.Utils.Logger;
 import com.peacefulotter.game.Game;
-import com.peacefulotter.packets.InitPacket;
 import com.peacefulotter.packets.LoginPacket;
 import com.peacefulotter.packets.Packet;
 
 import java.io.*;
 import java.net.Socket;
-import java.net.SocketException;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.WritableByteChannel;
-import java.nio.file.LinkOption;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Objects;
+import java.util.Scanner;
 
 public final class ConnectionHandler implements Runnable
 {
+    private static final int BYTES_LENGTH = 128;
     private static final int MAX_TRIES = 10;
 
     private static int id = 0;
@@ -40,65 +38,57 @@ public final class ConnectionHandler implements Runnable
         this.isServer = isServer;
     }
 
+    /**
+     * Get the data received from the Server or a Client
+     * and parse it
+     */
     @Override
     public void run()
     {
         Logger.log( getClass(), "Running on " + ++id );
+
+        if ( socket.isClosed() )
+        {
+            Logger.log(getClass(), "Socket closed!");
+            return;
+        }
+
+        readData();
+    }
+
+    private void readData()
+    {
         try
         {
-            if ( !socket.isClosed() )
-                processIncomingData( socket.getInputStream() );
+            // new String( data ).trim()
+            Logger.log( getClass(), "Reading the input stream" );
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = socket.getInputStream().read(buffer)) != -1) {
+                result.write(buffer, 0, length);
+            }
+            String r = result.toString( StandardCharsets.UTF_8 );
+            Logger.log( getClass(), "Incoming data " + r );
+            System.out.println(r);
+            //parsePacket( data );
         }
         catch ( IOException e )
         {
-            e.printStackTrace( Logger.err );
-            System.exit( 1 );
+            System.out.println("catch");
+            e.printStackTrace();
         }
-    }
-
-
-    public void processIncomingData( InputStream inStream ) throws IOException
-    {
-        Logger.log( getClass(), " Processing data " + socket.isClosed() );
-        boolean done = false;
-        int tries = 0;
-
-        do
-        {
-            try ( DataInputStream dis = new DataInputStream( inStream ) )
-            {
-                byte[] data = new byte[ dis.readByte() ];
-                try
-                {
-                    dis.readFully( data );
-                }
-                catch( EOFException e )
-                {
-                    Logger.log( getClass(), "Incoming data is empty " );
-                    return;
-                }
-
-                Logger.log( getClass(), "Incoming data : " + new String( data ).trim() );
-
-                parsePacket( data );
-                done = true;
-            }
-            catch( SocketException e )
-            {
-                e.printStackTrace( Logger.err );
-            }
-
-            // inStream.close(); =======================
-        } while( !done && ++tries < MAX_TRIES );
     }
 
     private void parsePacket( byte[] data )
     {
         String msg = new String( data ).trim();
+        System.out.println(Collections.singletonList(data));
+        Logger.log( getClass(), "Received Message : " + msg + ".");
         Packet.PacketTypes type = Packet.PacketTypes.getType( msg.split( ";" )[ 0 ] );
 
         assert type != null;
-        Logger.log( getClass(), "type : " + type.name() );
+        Logger.log( getClass(), "Parsing packet of type " + type.name() );
 
         switch ( Objects.requireNonNull( type ) )
         {
@@ -113,37 +103,32 @@ public final class ConnectionHandler implements Runnable
                 break;
         }
 
+        // sends the data to all users
         if ( isServer )
             connection.sendData( data );
     }
 
-
+    /**
+     * Send the data through the output stream
+     * @param data : bytes to send
+     * @return boolean - success = true, failure = false
+     */
     public boolean sendData( byte[] data )
     {
         Logger.log( getClass(), "Sending data on " + id );
-        ByteBuffer buffer = ByteBuffer.allocateDirect( data.length ).put( data );
-        try ( WritableByteChannel outputChannel = Channels.newChannel( socket.getOutputStream() ) )
-        {
-            Logger.log( getClass(), buffer.toString() );
-            buffer.flip();
-            outputChannel.write( buffer );
-        }
-        catch( IOException e )
-        {
-            e.printStackTrace( Logger.err );
-        }
 
-        /*try ( DataOutputStream dos = new DataOutputStream( outputStream ) )
+        try
         {
-            Logger.log( getClass(), "Sending data with " + outputStream );
+            DataOutputStream dos = new DataOutputStream( socket.getOutputStream() );
             dos.writeInt( data.length );
             dos.write( data, 0, data.length );
+            Logger.log( getClass(), "Finished sending data on " + id );
             return true;
         } catch ( IOException e )
         {
             e.printStackTrace( Logger.err );
         }
-        return false;*/
-        return true;
+
+        return false;
     }
 }
