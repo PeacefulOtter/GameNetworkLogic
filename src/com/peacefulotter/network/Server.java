@@ -43,7 +43,7 @@ public final class Server implements Connection
         }
         catch ( IOException e )
         {
-            e.printStackTrace( Logger.err );
+            Logger.err( e.getMessage(), e.getStackTrace() );
         }
     }
 

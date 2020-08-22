@@ -64,7 +64,7 @@ public final class Client implements Connection
             }
             catch ( IOException e )
             {
-              e.printStackTrace( Logger.err );
+                Logger.err( e.getMessage(), e.getStackTrace() );
             }
         } while ( !connected && ++tries < MAX_TRIES );
     }

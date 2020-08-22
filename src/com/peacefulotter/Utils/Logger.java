@@ -2,6 +2,7 @@ package com.peacefulotter.Utils;
 
 import java.io.PrintStream;
 import java.time.LocalTime;
+import java.util.StringJoiner;
 
 public class Logger
 {
@@ -20,24 +21,18 @@ public class Logger
         System.out.println( getTime() + " " + prefix + " " + msg );
     }
 
+    public static void err( String errMessage, StackTraceElement[] trace )
+    {
+        StringJoiner sj = new StringJoiner( "\n" );
+        sj.add( errMessage );
+        for ( StackTraceElement traceElement : trace )
+            sj.add( "\tat " + traceElement );
+
+        log( "= ERR =", sj.toString() );
+    }
+
     private static String getTime()
     {
         return LocalTime.now().toString().split( "\\." )[ 0 ];
-    }
-
-    public static final PrintStream err = new ExceptionLogger();
-
-    public static final class ExceptionLogger extends PrintStream
-    {
-        public ExceptionLogger()
-        {
-            super( System.err );
-        }
-
-        @Override
-        public void println( String x )
-        {
-            log( x );
-        }
     }
 }

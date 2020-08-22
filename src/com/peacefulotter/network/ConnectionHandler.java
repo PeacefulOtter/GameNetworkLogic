@@ -84,8 +84,7 @@ public final class ConnectionHandler implements Runnable
         }
         catch ( IOException e )
         {
-            System.out.println("catch");
-            e.printStackTrace();
+            Logger.err( e.getMessage(), e.getStackTrace() );
         }
     }
 
