@@ -8,15 +8,21 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public final class Server implements Connection
 {
     private final Map<Integer, ConnectionHandler> connections;
+    private final Set<Integer> removeQueue;
+
+    private int socketConnectionId;
 
     private Server( int port )
     {
         this.connections = new HashMap<>();
+        this.removeQueue = new HashSet<>();
 
         try ( ServerSocket server = new ServerSocket( port ) )
         {
@@ -29,7 +35,9 @@ public final class Server implements Connection
                 Logger.log( getClass(), "Received socket : " + socket );
 
                 ConnectionHandler handler = new ConnectionHandler( socket, game, this, true );
-                connections.put( RandomInteger.generate(), handler );
+                socketConnectionId = RandomInteger.generate();
+                connections.put( socketConnectionId, handler );
+
                 new Thread( handler ).start();
             }
         }
@@ -53,11 +61,13 @@ public final class Server implements Connection
     @Override
     public void sendData( byte[] data )
     {
-        Logger.log( getClass(), "Sending data to " + connections );
+        Logger.log( getClass(), "Sending data to the connections" );
+
         for (  Map.Entry<Integer, ConnectionHandler> entry : connections.entrySet() )
-        {
-            sendDataAndRemove( entry.getKey(), entry.getValue(), data );
-        }
+            if ( socketConnectionId != entry.getKey() )
+                sendDataAndRemove( entry.getKey(), entry.getValue(), data );
+
+        removeConnections();
     }
 
     @Override
@@ -69,11 +79,11 @@ public final class Server implements Connection
     private void sendDataAndRemove( Integer id, ConnectionHandler handler, byte[] data )
     {
         boolean done = handler.sendData( data );
-        if ( !done ) removeConnection( id );
+        if ( !done ) removeQueue.add( id );
     }
 
-    private void removeConnection( int connectionId )
+    private void removeConnections()
     {
-        connections.remove( connectionId );
+        removeQueue.forEach( connections::remove );
     }
 }

@@ -7,11 +7,11 @@ import com.peacefulotter.packets.Packet;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
-import java.util.Scanner;
 
 public final class ConnectionHandler implements Runnable
 {
@@ -20,10 +20,10 @@ public final class ConnectionHandler implements Runnable
 
     private static int id = 0;
 
-    private final boolean isServer;
     private final Game game;
     private final Connection connection;
     private final Socket socket;
+    private final boolean isServer;
 
     public ConnectionHandler( Socket socket, Game game, Connection connection )
     {
@@ -56,22 +56,31 @@ public final class ConnectionHandler implements Runnable
         readData();
     }
 
+    /*
+    Faster, but blocks the thread for some reasons...
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            byte[] buffer = new byte[ BYTES_LENGTH ];
+            int length;
+            while ((length = inStream.read(buffer)) != -1) {
+                result.write(buffer, 0, length);
+            }
+            String r = result.toString( StandardCharsets.UTF_8 );
+     */
     private void readData()
     {
         try
         {
-            // new String( data ).trim()
             Logger.log( getClass(), "Reading the input stream" );
-            ByteArrayOutputStream result = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = socket.getInputStream().read(buffer)) != -1) {
-                result.write(buffer, 0, length);
-            }
-            String r = result.toString( StandardCharsets.UTF_8 );
-            Logger.log( getClass(), "Incoming data " + r );
-            System.out.println(r);
-            //parsePacket( data );
+
+            DataInputStream dis = new DataInputStream( socket.getInputStream() );
+            byte[] data = new byte[ dis.readInt() ];
+            dis.readFully( data );
+
+            parsePacket( data );
+
+            // sends the data to all users
+            if ( isServer )
+                connection.sendData( data );
         }
         catch ( IOException e )
         {
@@ -83,7 +92,6 @@ public final class ConnectionHandler implements Runnable
     private void parsePacket( byte[] data )
     {
         String msg = new String( data ).trim();
-        System.out.println(Collections.singletonList(data));
         Logger.log( getClass(), "Received Message : " + msg + ".");
         Packet.PacketTypes type = Packet.PacketTypes.getType( msg.split( ";" )[ 0 ] );
 
@@ -102,10 +110,6 @@ public final class ConnectionHandler implements Runnable
             default:
                 break;
         }
-
-        // sends the data to all users
-        if ( isServer )
-            connection.sendData( data );
     }
 
     /**
@@ -115,7 +119,7 @@ public final class ConnectionHandler implements Runnable
      */
     public boolean sendData( byte[] data )
     {
-        Logger.log( getClass(), "Sending data on " + id );
+        Logger.log( getClass(), "Sending data " + new String( data ).trim() + " on " + id );
 
         try
         {
@@ -126,7 +130,7 @@ public final class ConnectionHandler implements Runnable
             return true;
         } catch ( IOException e )
         {
-            e.printStackTrace( Logger.err );
+            Logger.log( "Broken Pipe on " + id + ", not sending the data" );
         }
 
         return false;

@@ -6,9 +6,9 @@ import com.peacefulotter.game.ClientGame;
 import com.peacefulotter.game.Game;
 import com.peacefulotter.packets.LoginPacket;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.Collections;
 
 
@@ -44,8 +44,7 @@ public final class Client implements Connection
 
     private void listenForIncomingSocket( String address, int port )
     {
-        game = new ClientGame( this );
-        new Thread( game ).start();
+        game = new ClientGame(this);
 
         boolean connected = false;
         int tries = 0;
@@ -54,9 +53,12 @@ public final class Client implements Connection
             try
             {
                 Socket s = new Socket( address, port );
-                Logger.log( Client.class, "Received Socket from server" );
+                Logger.log( getClass(), "Received Socket from server " + s );
+                //System.out.println( new DataInputStream( s.getInputStream() ).readInt() );
                 handler = new ConnectionHandler( s, game, this );
+
                 new Thread( handler ).start();
+                new Thread( game ).start();
 
                 connected = true;
             }
@@ -75,7 +77,7 @@ public final class Client implements Connection
     @Override
     public void sendData( byte[] data )
     {
-        Logger.log( getClass(), "Sending data" + Collections.singletonList(data));
+        Logger.log( getClass(), "Sending data" + Collections.singletonList( data ) );
         boolean done = handler.sendData( data );
         if ( !done ) game.end();
     }

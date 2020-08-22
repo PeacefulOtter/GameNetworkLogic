@@ -26,6 +26,7 @@ public class Game implements Runnable
         Logger.log( this.getClass(), "Ending game" );
     }
 
+    // Use this for settings from the server
     public void handlePacket( InitPacket packet )
     {
 

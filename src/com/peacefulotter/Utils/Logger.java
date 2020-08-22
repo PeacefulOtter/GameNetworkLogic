@@ -1,12 +1,7 @@
 package com.peacefulotter.Utils;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
-
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 
 public class Logger
 {
@@ -17,12 +12,12 @@ public class Logger
 
     public static void log( Class<?> c, String msg )
     {
-        log( c.getSimpleName(), msg );
+        log( "[" + c.getSimpleName() +  "]", msg );
     }
 
     public static void log( String prefix, String msg )
     {
-        System.out.println( getTime() + " [" + prefix + "] " + msg );
+        System.out.println( getTime() + " " + prefix + " " + msg );
     }
 
     private static String getTime()
